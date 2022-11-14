@@ -17,7 +17,8 @@ get_scorecard <- function(filename) {
     filter(UNITID %in% ID) %>% 
     select(UNITID, INSTNM, CITY, STABBR, LATITUDE, 
            LONGITUDE, ADM_RATE, UGDS, NPT4_PUB, NPT4_PRIV, 
-           COSTT4_A, TUITIONFEE_IN, TUITIONFEE_OUT, C150_4) %>% 
+           COSTT4_A, TUITIONFEE_IN, TUITIONFEE_OUT, C150_4, 
+           ACTCM25, ACTCM75) %>% 
     mutate(across(5:14, as.numeric), YEAR = YEAR) %>% 
     drop_na(ADM_RATE)
   
@@ -26,12 +27,8 @@ get_scorecard <- function(filename) {
 
 # get scorecard data for past ten years
 filenames <- paste0("data/scorecard/MERGED", 2011:2020, "_", 12:21, "_PP.csv")
-scorecard <- data.frame()
-
-# this takes some time
-for(file in filenames) {
-  scorecard <- rbind(scorecard, get_scorecard(file))
-}
+data_list <- lapply(filenames, get_scorecard)
+scorecard <- bind_rows(data_list)
 
 # have all ten observations for PSU
 # Thomas Jefferson U combined with Philadelphia U in 2017
