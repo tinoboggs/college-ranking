@@ -18,7 +18,7 @@ get_scorecard <- function(filename) {
     select(UNITID, INSTNM, CITY, STABBR, LATITUDE, 
            LONGITUDE, ADM_RATE, UGDS, NPT4_PUB, NPT4_PRIV, 
            COSTT4_A, TUITIONFEE_IN, TUITIONFEE_OUT, C150_4, 
-           ACTCM25, ACTCM75) %>% 
+           ACTCM25, ACTCM75, ACTCMMID) %>% 
     mutate(across(5:14, as.numeric), YEAR = YEAR) %>% 
     drop_na(ADM_RATE)
   
