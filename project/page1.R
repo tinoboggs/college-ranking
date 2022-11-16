@@ -2,16 +2,23 @@ library(tidyverse)
 library(shiny)
 
 data <- read_csv("data/colleges.csv")
+raw <- read_csv("college-ranking/project/data/colleges.csv")
+data <- raw %>%
+  mutate(ACTCM25 = as.integer(ACTCM25))
 
-data %>%
-  filter(YEAR == 2020) %>%
-  ggplot() +
-  geom_point(aes(LONGITUDE, LATITUDE))
+filter_data <- function(act_score) {
+  out <- data %>%
+    filter(
+      YEAR == 2020,
+      act_score > ACTCM25
+      )
+  return(out)
+}
 
 ui <- fluidPage(
   titlePanel("get ready to make the most important decision of your life (no pressure)"),
   column(4,
-         textInput("act_score", "ACT Score")
+         numericInput("act_score", "ACT Score")
   ),
   column(4,
          fluidRow(
@@ -23,31 +30,22 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
+  app_data <- reactive({
+    filter_data(input$act_score)
+  })
   output$map <- renderPlot({
-    data %>%
-      filter(
-        YEAR == 2020,
-        ACTCM25 < input$act_score
-      ) %>%
+    app_data() %>%
       ggplot() +
       geom_point(aes(LONGITUDE, LATITUDE))
   })
   output$hist <- renderPlot({
-    data %>%
-      filter(
-        YEAR == 2020,
-        ACTCM25 < input$act_score
-      ) %>%
+    app_data() %>%
       ggplot() +
       geom_histogram(aes(COSTT4_A))
   })
   output$table <- renderDataTable({
-    data %>%
-      filter(
-        YEAR == 2020,
-        ACTCM25 < input$act_score
-      ) %>%
-      select(NAME, RANK, CITY, STABBR)
+    app_data() %>%
+      select(NAME, RANK, CITY, STABBR, ACTCM25)
   })
 }
 
