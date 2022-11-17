@@ -1,10 +1,11 @@
 library(tidyverse)
+library(leaflet)
 library(shiny)
 
 data <- read_csv("data/colleges.csv")
-raw <- read_csv("college-ranking/project/data/colleges.csv")
+#raw <- read_csv("college-ranking/project/data/colleges.csv")
 
-data <- raw %>%
+data <- data %>%
   mutate_at(vars(contains("ACTCM")), funs(as.integer))
 
 states <- data$STABBR %>%
@@ -22,14 +23,14 @@ filter_data <- function(act_score, selectivity, min_admit, home_state, budget) {
         act_score >= ACTCM25 ~ "Target",
         act_score < ACTCM25 ~ "Reach"
       )
-      ) %>%
+    ) %>%
     filter(
       YEAR == 2020,
       admit_difficulty %in% selectivity,
       min_admit <= ADM_RATE,
       cur_tuition >= budget[1],
       cur_tuition <= budget[2]
-      )
+    )
   return(out)
 }
 
@@ -44,7 +45,7 @@ ui <- fluidPage(
   ),
   column(4,
          fluidRow(
-           plotOutput("map"),
+           leafletOutput("map"),
            plotOutput("hist")
          )
   ),
@@ -55,10 +56,12 @@ server <- function(input, output) {
   app_data <- reactive({
     filter_data(input$act_score, input$selectivity, input$min_admit, input$home_state, input$budget)
   })
-  output$map <- renderPlot({
+  output$map <- renderLeaflet({
     app_data() %>%
-      ggplot() +
-      geom_point(aes(LONGITUDE, LATITUDE))
+      leaflet() %>% 
+      addTiles() %>% 
+      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE) %>% 
+      setView(lng = -93.85, lat = 37.45, zoom = 3)
   })
   output$hist <- renderPlot({
     app_data() %>%
