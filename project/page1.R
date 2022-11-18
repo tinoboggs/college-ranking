@@ -8,12 +8,7 @@ data <- read_csv("data/colleges.csv")
 data <- data %>%
   mutate_at(vars(contains("ACTCM")), funs(as.integer))
 
-states <- data$STABBR %>%
-  unique() %>%
-  sort() %>%
-  as.list()
-
-filter_data <- function(act_score, selectivity, min_admit, home_state, budget) {
+filter_data <- function(act_score, selectivity, min_admit, home_state, budget, size, type) {
   out <- data %>%
     mutate(
       cur_tuition = ifelse(STABBR == home_state, TUITIONFEE_IN, TUITIONFEE_OUT),
@@ -22,6 +17,10 @@ filter_data <- function(act_score, selectivity, min_admit, home_state, budget) {
         act_score > ACTCM75 ~ "Safety",
         act_score >= ACTCM25 ~ "Target",
         act_score < ACTCM25 ~ "Reach"
+      ),
+      inst_type = case_when(
+        TYPE == "PRIV" ~ "Private",
+        TYPE == "PUB" ~ "Public"
       )
     ) %>%
     filter(
@@ -29,7 +28,10 @@ filter_data <- function(act_score, selectivity, min_admit, home_state, budget) {
       admit_difficulty %in% selectivity,
       min_admit <= ADM_RATE,
       cur_tuition >= budget[1],
-      cur_tuition <= budget[2]
+      cur_tuition <= budget[2],
+      UGDS >= size[1],
+      UGDS <= size[2],
+      inst_type %in% type
     )
   return(out)
 }
@@ -40,8 +42,10 @@ ui <- fluidPage(
          numericInput("act_score", "ACT Score", value = 36),
          checkboxGroupInput("selectivity", "Selectivity", c("Reach", "Target", "Safety"), selected = c("Reach", "Target", "Safety")),
          sliderInput("min_admit", "Minimum Admit Rate", 0, 1, 0),
-         selectInput("home_state", "Home State", states, selected = "WI"),
-         sliderInput("budget", "Tuition Range (per year)", 0, 70000, c(0, 70000), pre = "$")
+         selectInput("home_state", "Home State", state.abb, selected = "WI"),
+         sliderInput("budget", "Tuition Range (per year)", 0, 70000, c(0, 70000), pre = "$"),
+         sliderInput("size", "Student Body Size", 0, 80000, c(0, 80000)),
+         checkboxGroupInput("type", "Institution Type", c("Public", "Private"), selected = c("Public", "Private"))
   ),
   column(4,
          fluidRow(
@@ -54,7 +58,7 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   app_data <- reactive({
-    filter_data(input$act_score, input$selectivity, input$min_admit, input$home_state, input$budget)
+    filter_data(input$act_score, input$selectivity, input$min_admit, input$home_state, input$budget, input$size, input$type)
   })
   output$map <- renderLeaflet({
     app_data() %>%
@@ -70,7 +74,7 @@ server <- function(input, output) {
   })
   output$table <- renderDataTable({
     app_data() %>%
-      select(NAME, ACTCM25, ACTCM75, ADM_RATE, admit_difficulty)#RANK, CITY, STABBR, ACTCM25)
+      select(NAME, ACTCM25, ACTCM75, ADM_RATE, admit_difficulty) # RANK, CITY, STABBR, ACTCM25)
   })
 }
 
