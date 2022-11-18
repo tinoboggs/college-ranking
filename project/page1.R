@@ -1,12 +1,14 @@
 library(tidyverse)
 library(leaflet)
 library(shiny)
+theme_set(theme_minimal())
 
 data <- read_csv("data/colleges.csv")
 #raw <- read_csv("college-ranking/project/data/colleges.csv")
 
 data <- data %>%
-  mutate_at(vars(contains("ACTCM")), funs(as.integer))
+  mutate_at(vars(contains("ACTCM")), funs(as.integer)) %>%
+  mutate(avg_yearly_cost = COSTT4_A / 4)
 
 filter_data <- function(act_score, selectivity, min_admit, home_state, budget, size, type) {
   out <- data %>%
@@ -21,8 +23,7 @@ filter_data <- function(act_score, selectivity, min_admit, home_state, budget, s
       inst_type = case_when(
         TYPE == "PRIV" ~ "Private",
         TYPE == "PUB" ~ "Public"
-      ),
-      avg_yearly_cost = COSTT4_A / 4
+      )
     ) %>%
     filter(
       YEAR == 2020,
@@ -63,14 +64,16 @@ server <- function(input, output) {
     filter_data(input$act_score, input$selectivity, input$min_admit, input$home_state, input$budget, input$size, input$type)
   })
   output$cost <- renderPlot({
-    app_data() %>%
+    data %>%
       ggplot() +
       geom_histogram(aes(avg_yearly_cost)) +
       labs(
-        title = "Yearly Cost of Attendance"
+        title = "Yearly Average Cost of Attendance"
       ) +
       theme(
-        axis.title = element_blank()
+        axis.title = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()
       )
   })
   output$map <- renderLeaflet({
