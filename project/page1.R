@@ -3,10 +3,7 @@ library(leaflet)
 library(shiny)
 theme_set(theme_minimal())
 
-data <- read_csv("data/colleges.csv")
-#raw <- read_csv("college-ranking/project/data/colleges.csv")
-
-data <- data %>%
+data <- read_csv("data/colleges.csv") %>% 
   mutate_at(vars(contains("ACTCM")), funs(as.integer)) %>%
   mutate(avg_yearly_cost = COSTT4_A / 4)
 
@@ -38,56 +35,65 @@ filter_data <- function(act_score, selectivity, min_admit, home_state, budget, s
   return(out)
 }
 
-ui <- fluidPage(
-  titlePanel("get ready to make the most important decision of your life (no pressure)"),
-  column(4,
-         numericInput("act_score", "ACT Score", value = 36),
-         checkboxGroupInput("selectivity", "Selectivity", c("Reach", "Target", "Safety"), selected = c("Reach", "Target", "Safety")),
-         sliderInput("min_admit", "Minimum Admit Rate", 0, 1, 0),
-         selectInput("home_state", "Home State", state.abb, selected = "WI"),
-         plotOutput("cost", brush = brushOpts("cost_brush", direction = "x"), height = 100),
-         sliderInput("budget", "Tuition Range (per year)", 0, 70000, c(0, 70000), pre = "$"),
-         sliderInput("size", "Student Body Size", 0, 80000, c(0, 80000)),
-         checkboxGroupInput("type", "Institution Type", c("Public", "Private"), selected = c("Public", "Private"))
+histplot <- function(data, var) {
+  ggplot(data) +
+    geom_histogram(aes({{var}})) +
+    theme(
+      axis.title = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank()
+    )
+}
+
+ui <- navbarPage("College Ranking",
+  tabPanel("Page 1",
+   fluidPage(
+     titlePanel("get ready to make the most important decision of your life (no pressure)"),
+     fluidRow(
+       column(2, selectInput("home_state", "Home State", state.abb, selected = "WI")),
+       column(2, numericInput("act_score", "ACT Score", value = 36, min = 0, max = 36)),
+       column(4, sliderInput("min_admit", "Minimum Admit Rate", 0, 1, 0)),
+       column(1, checkboxGroupInput("selectivity", "Selectivity", c("Reach", "Target", "Safety"), selected = c("Reach", "Target", "Safety"))),
+       column(1, checkboxGroupInput("type", "Institution Type", c("Public", "Private"), selected = c("Public", "Private")))
+       ),
+     fluidRow(
+       column(3,
+        plotOutput("cost", brush = brushOpts("cost_brush", direction = "x"), height = 200),
+        sliderInput("budget", "Tuition Range (per year)", 0, 70000, c(0, 70000), pre = "$"),
+        sliderInput("size", "Student Body Size", 0, 80000, c(0, 80000))
+       ),
+       column(5, leafletOutput("map")),
+       column(4, plotOutput("hist"))
+     ),
+     fluidRow(dataTableOutput("table")),
+   )
   ),
-  column(4,
-         fluidRow(
-           leafletOutput("map"),
-           plotOutput("hist")
-         )
-  ),
-  column(4, dataTableOutput("table")),
+  tabPanel("Page 2")
 )
 
 server <- function(input, output) {
   app_data <- reactive({
     filter_data(input$act_score, input$selectivity, input$min_admit, input$home_state, input$budget, input$size, input$type)
   })
+  
   output$cost <- renderPlot({
-    data %>%
-      ggplot() +
-      geom_histogram(aes(avg_yearly_cost)) +
-      labs(
-        title = "Yearly Average Cost of Attendance"
-      ) +
-      theme(
-        axis.title = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank()
-      )
+    histplot(data, avg_yearly_cost) +
+      labs(title = "Yearly Average Cost of Attendance")
   })
+
   output$map <- renderLeaflet({
     app_data() %>%
-      leaflet() %>% 
-      addTiles() %>% 
-      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE) %>% 
-      setView(lng = -93.85, lat = 37.45, zoom = 3)
+      leaflet(options = leafletOptions(minZoom = 3)) %>% 
+      addProviderTiles(providers$Stamen.TonerLite, options = providerTileOptions(noWrap = TRUE)) %>% 
+      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE, label = ~NAME) %>% 
+      setView(lng = -93.85, lat = 37.45, zoom = 3) %>% 
+      setMaxBounds(lng1 = -40, lat1 = 10, lng2 = -160, lat2 = 60)
   })
+  
   output$hist <- renderPlot({
-    app_data() %>%
-      ggplot() +
-      geom_histogram(aes(COSTT4_A))
+    histplot(app_data(), COSTT4_A) + theme(axis.title.x = element_text()) + labs(x="Average Cost of Attendance")
   })
+  
   output$table <- renderDataTable({
     app_data() %>%
       select(NAME, ACTCM25, ACTCM75, ADM_RATE, admit_difficulty) # RANK, CITY, STABBR, ACTCM25)
