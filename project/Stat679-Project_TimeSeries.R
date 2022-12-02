@@ -5,7 +5,7 @@
 library(readxl)
 library(tidyverse)
 library(gganimate)
-dat=read_xlsx("/Users/albertdorador/Desktop/Stat679/Project/data/Criminal_Offenses_On_campus.xlsx")
+dat=read_xlsx("data/Criminal_Offenses_On_campus.xlsx")
 
 datMC = dat %>% filter(Campus_ID == 1)
 
