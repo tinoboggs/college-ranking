@@ -64,6 +64,54 @@ histplot <- function(df, var, selected) {
     )
 }
 
+### PAGE 2 FUNCTIONS ###
+
+# Star plot function
+starplot <- function(data,
+                     vlabels = colnames(data), vlcex = 0.7,
+                     caxislabels = NULL, title = NULL, ...){
+  
+  color <- c(rgb(1, 0, 0, 0.25),
+             rgb(0, 1, 0, 0.25),
+             rgb(0, 0, 1, 0.25))
+  
+  radarchart(
+    data, axistype = 1,
+    # Customize the polygon
+    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    # Customize the grid
+    cglcol = "grey", cglty = 1, cglwd = 0.8,
+    # Customize the axis
+    axislabcol = "grey", 
+    # Variable labels
+    vlcex = vlcex, vlabels = vlabels,
+    caxislabels = caxislabels, title = title, ...
+  )
+}
+
+# Setting up data for star plot
+star_data_convert <- function(star_school, star_stats){
+  # Convert selected stats into percentiles using all 2020 schools
+  star_data <- data %>%
+    filter(YEAR == 2020) %>% 
+    select(NAME, star_stats) %>% 
+    mutate(across(star_stats, function(x) ecdf(x)(x)))
+  
+  # Add min/max levels of 0 and 1 (needed for the starplot bounds)
+  star_data <- rbind(c("MAX",rep(1,ncol(star_data)-1)),
+                     c("MIN",rep(0,ncol(star_data)-1)),
+                     star_data) %>% 
+    mutate(across(star_stats, as.numeric))
+  
+  # Filter only selected school and create plot
+  out <- star_data %>% 
+    filter(NAME %in% c("MAX","MIN", star_school)) %>% 
+    select(-NAME) %>% 
+    as.data.frame()
+  
+  return(out)
+}
+
 ui <- navbarPage("College Ranking",
                  tabPanel("Find Universities",
                           fluidPage(
@@ -91,12 +139,26 @@ ui <- navbarPage("College Ranking",
                  ),
                  tabPanel("Compare Universities",
                           fluidPage(
-                            titlePanel("Compare Universities")
+                            titlePanel("Compare Universities"),
+                            fluidRow(
+                              column(2, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
+                              column(2, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
+                              column(2, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
+                            ),
+                            fluidRow(
+                              column(4, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
+                                                           c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT", "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost"),
+                                                           selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
+                              column(5, plotOutput("starplot"))
+                            ),
+                            fluidRow(
+                              dataTableOutput("startable")
+                            )
                           )
                  )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   data <- reactive({
     update_data(input$home_state, input$act_score, input$min_admit, input$selectivity, input$type, input$cost_range, input$tuition_range, input$size_range)
   })
@@ -133,6 +195,46 @@ server <- function(input, output) {
     data() %>%
       filter(selected == TRUE) %>% 
       select(NAME, CITY, RANK, admit_difficulty, cur_tuition, avg_yearly_cost) # RANK, CITY, STABBR, ACTCM25)
+  })
+  
+  ### PAGE 2 ###
+  
+  # Make the star plot school selection input options change based on page 1 filters
+  observe({
+    p1schools <- data()$NAME
+    
+    if (is.null(p1schools)){
+      p1schools <- character(0)
+    }
+    
+    updateSelectInput(session, "star_school1",
+                      choices = p1schools,
+                      selected = head(p1schools, 1)
+    )
+    
+    updateSelectInput(session, "star_school2",
+                      choices = c(NA,p1schools),
+                      selected = NA
+    )
+    
+    updateSelectInput(session, "star_school3",
+                      choices = c(NA,p1schools),
+                      selected = NA
+    )
+    
+  })
+  
+  # Convert data for star plot
+  star_data <- reactive({
+    star_data_convert(c(input$star_school1,input$star_school2,input$star_school3), input$star_stats)
+  })
+  
+  output$starplot <- renderPlot({
+    starplot(star_data())
+  })
+  
+  output$startable <- renderDataTable({
+    star_data()
   })
 }
 
