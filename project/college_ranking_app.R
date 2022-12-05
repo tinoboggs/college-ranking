@@ -1,6 +1,7 @@
 library(tidyverse)
 library(leaflet)
 library(shiny)
+library(fmsb)
 theme_set(theme_minimal())
 
 data <- read_csv("data/colleges.csv")
@@ -14,7 +15,7 @@ data <- read_csv("data/colleges.csv") %>%
     TUITIONFEE_IN = round(TUITIONFEE_IN, digits = -1),
     TUITIONFEE_OUT = round(TUITIONFEE_OUT, digits = -1),
     cur_tuition = round(ifelse(STABBR == "WI", TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
-    selected = 1,
+    selected = 1
   ) %>%
   drop_na()
 
@@ -53,7 +54,7 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
 
 histplot <- function(df, var, selected) {
   ggplot(df) +
-    geom_histogram(aes(x = {{var}}, fill = factor(selected, levels = c("FALSE", "TRUE")))) +
+    geom_histogram(aes(x = {{var}}, fill = factor(selected, levels = c(0, 1)))) +
     scale_fill_manual(values=c("orange", "purple")) +
     theme(
       legend.position = "none",
