@@ -53,14 +53,12 @@ starplot <- function(data,
                      vlabels = colnames(data), vlcex = 0.7,
                      caxislabels = NULL, title = NULL, ...){
   
-  color <- c(rgb(1, 0, 0, 0.25),
-             rgb(0, 1, 0, 0.25),
-             rgb(0, 0, 1, 0.25))
+  color <- c("#F8766D", "#00BFC4", "#7CAE00")
   
   radarchart(
     data, axistype = 1,
     # Customize the polygon
-    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    pcol = color, pfcol = scales::alpha(color, 0.3), plwd = 2, plty = 1,
     # Customize the grid
     cglcol = "grey", cglty = 1, cglwd = 0.8,
     # Customize the axis
@@ -69,15 +67,26 @@ starplot <- function(data,
     vlcex = vlcex, vlabels = vlabels,
     caxislabels = caxislabels, title = title, ...
   )
+  
+  ### FIX THIS ###
+  legend(
+    x = "bottom", legend = star_data()$NAME, horiz = TRUE,
+    bty = "n", pch = 20 , col = c("#F8766D", "#00BFC4", "#7CAE00"),
+    text.col = "black", cex = 1, pt.cex = 1.5
+  )
 }
 
 # Setting up data for star plot
 star_data_convert <- function(star_school, star_stats){
+  stats_all <- c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT", "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost")
+  stats_inv <- c("RANK", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT", "NPT", "avg_yearly_cost")
+  
   # Convert selected stats into percentiles using all 2020 schools
   star_data <- data %>%
     filter(YEAR == 2020) %>% 
-    select(NAME, star_stats) %>% 
-    mutate(across(star_stats, function(x) ecdf(x)(x)))
+    mutate(across(stats_all, function(x) ecdf(x)(x))) %>% 
+    mutate(across(stats_inv, function(x) 1-x)) %>% 
+  select(NAME, star_stats)
   
   # Add min/max levels of 0 and 1 (needed for the starplot bounds)
   star_data <- rbind(c("MAX",rep(1,ncol(star_data)-1)),
@@ -245,7 +254,8 @@ server <- function(input, output, session) {
   })
   
   output$startable <- renderDataTable({
-    star_data()
+    app_data() %>%
+      select(NAME, star_stats)
   })
   
   # Convert data for line plot
