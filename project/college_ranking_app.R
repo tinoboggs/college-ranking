@@ -4,9 +4,7 @@ library(shiny)
 library(fmsb)
 theme_set(theme_minimal())
 
-data <- read_csv("data/colleges.csv")
-
-data <- read_csv("data/colleges.csv") %>% 
+data <- read_csv("data/colleges_crime.csv") %>% 
   mutate_at(vars(contains("ACTCM")), funs(as.integer)) %>%
   mutate(
     CITY = paste0(CITY, ", ", STABBR),
@@ -14,7 +12,7 @@ data <- read_csv("data/colleges.csv") %>%
     UGDS = round(UGDS, digits = -1),
     TUITIONFEE_IN = round(TUITIONFEE_IN, digits = -1),
     TUITIONFEE_OUT = round(TUITIONFEE_OUT, digits = -1),
-    cur_tuition = round(ifelse(STABBR == "WI", TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
+    TUITION = round(ifelse(STABBR == "WI", TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
     selected = 1
   ) %>%
   drop_na()
@@ -25,7 +23,7 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
   out <- data %>%
     filter(YEAR == 2020) %>%
     mutate(
-      cur_tuition = round(ifelse(STABBR == home_state, TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
+      TUITION = round(ifelse(STABBR == home_state, TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
       admit_difficulty = case_when(
         ADM_RATE < .1 ~ "Reach", # Any school with admit rate <10% is reach, regardless of ACT score
         act_score > ACTCM75 ~ "Safety",
@@ -42,8 +40,8 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
         !(inst_type %in% type) ~ 0,
         avg_yearly_cost <= cost_range[1] ~ 0,
         avg_yearly_cost >= cost_range[2] ~ 0,
-        cur_tuition <= tuition_range[1] ~ 0,
-        cur_tuition >= tuition_range[2] ~ 0,
+        TUITION <= tuition_range[1] ~ 0,
+        TUITION >= tuition_range[2] ~ 0,
         UGDS <= size_range[1] ~ 0,
         UGDS >= size_range[2] ~ 0,
         TRUE ~ 1
@@ -67,35 +65,46 @@ histplot <- function(df, var, selected) {
 ### PAGE 2 FUNCTIONS ###
 
 # Star plot function
-starplot <- function(data,
-                     vlabels = colnames(data), vlcex = 0.7,
-                     caxislabels = NULL, title = NULL, ...){
+starplot <- function(data){
   
-  color <- c(rgb(1, 0, 0, 0.25),
-             rgb(0, 1, 0, 0.25),
-             rgb(0, 0, 1, 0.25))
+  color <- c("#F8766D", "#00BFC4", "#7CAE00")
+  
+  par(mar=c(3,6,2,6))
   
   radarchart(
-    data, axistype = 1,
+    data %>% select(-NAME), axistype = 1,
     # Customize the polygon
-    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    pcol = color, pfcol = scales::alpha(color, 0.15), plwd = 2, plty = 1,
     # Customize the grid
     cglcol = "grey", cglty = 1, cglwd = 0.8,
     # Customize the axis
     axislabcol = "grey", 
     # Variable labels
-    vlcex = vlcex, vlabels = vlabels,
-    caxislabels = caxislabels, title = title, ...
+    vlcex = 0.9, vlabels = colnames(data %>% select(-NAME)),
+    calcex=0.7, caxislabels = c("0%","25%","50%","75%","100%"),
+    title = "Head to Head Comparisons\n(percentiles)"
   )
+  
+  legend(
+    x = "bottom", xpd=TRUE, inset=c(0, -.05),
+    legend = data[-c(1:2),1], horiz = TRUE,
+    bty = "n", pch = 20 , col = c("#F8766D", "#00BFC4", "#7CAE00"),
+    text.col = "black", cex = 1, pt.cex = 2
+  )
+  
 }
 
 # Setting up data for star plot
 star_data_convert <- function(star_school, star_stats){
+  stats_all <- c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITION", "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost")
+  stats_inv <- c("RANK", "COSTT4_A", "TUITION", "NPT", "avg_yearly_cost")
+  
   # Convert selected stats into percentiles using all 2020 schools
   star_data <- data %>%
     filter(YEAR == 2020) %>% 
-    select(NAME, star_stats) %>% 
-    mutate(across(star_stats, function(x) ecdf(x)(x)))
+    mutate(across(stats_all, function(x) ecdf(x)(x))) %>% 
+    mutate(across(stats_inv, function(x) 1-x)) %>% 
+    select(NAME, star_stats)
   
   # Add min/max levels of 0 and 1 (needed for the starplot bounds)
   star_data <- rbind(c("MAX",rep(1,ncol(star_data)-1)),
@@ -106,7 +115,6 @@ star_data_convert <- function(star_school, star_stats){
   # Filter only selected school and create plot
   out <- star_data %>% 
     filter(NAME %in% c("MAX","MIN", star_school)) %>% 
-    select(-NAME) %>% 
     as.data.frame()
   
   return(out)
@@ -119,7 +127,10 @@ lineplot = function(df, line_variable){
     scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020))+
     labs(x = "Year", y = line_variable,
          title = paste0(line_variable, " Evolution (2011-2020)"), color = "")+
-    theme(text = element_text(size = 18))
+    theme(
+      text = element_text(size = 18),
+      legend.position = "bottom"
+      )
 }
 
 # Setting up data for line plot (use same schools as in star plot)
@@ -165,24 +176,24 @@ ui <- navbarPage("College Ranking",
                           fluidPage(
                             titlePanel("Micro view"),
                             fluidRow(
-                              column(4, selectInput("star_school1", "Select First School (Red)", unique(data$NAME), selected = NA)),
-                              column(4, selectInput("star_school2", "Select Second School (Green)", c(NA,unique(data$NAME)), selected = NA)),
-                              column(4, selectInput("star_school3", "Select Third School (Blue)", c(NA,unique(data$NAME)), selected = NA))
+                              column(4, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
+                              column(4, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
+                              column(4, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
                             ),
                             fluidRow(
-                              column(4, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
-                                                           c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN","TUITIONFEE_OUT",
+                              column(4, checkboxGroupInput("star_stats", "Select Starplot Stats (at least 3)", 
+                                                           c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITION",
                                                              "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                            selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
                               column(8, plotOutput("starplot"))
                             ),
                             fluidRow(
-                              column(3, selectInput("line_variable", "Select variable", 
-                                                    c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT",
+                              column(4, selectInput("line_variable", "Select Time Series Variable", 
+                                                    c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITION",
                                                       "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                     selected = c("ADM_RATE"))),
                               
-                              column(9, plotOutput("lineplot")),
+                              column(8, plotOutput("lineplot")),
                             ),
                             fluidRow(
                               dataTableOutput("startable")
@@ -209,7 +220,7 @@ server <- function(input, output, session) {
   })
   
   output$tuition <- renderPlot({
-    histplot(data(), cur_tuition, selected()) +
+    histplot(data(), TUITION, selected()) +
       labs(title = "Tuition Range (per year)")
   })
   
@@ -230,7 +241,7 @@ server <- function(input, output, session) {
   output$table <- renderDataTable({
     data() %>%
       filter(selected == TRUE) %>% 
-      select(NAME, CITY, RANK, admit_difficulty, cur_tuition, avg_yearly_cost) # RANK, CITY, STABBR, ACTCM25)
+      select(NAME, CITY, RANK, admit_difficulty, TUITION, avg_yearly_cost) # RANK, CITY, STABBR, ACTCM25)
   })
   
   ### PAGE 2 ###
@@ -272,7 +283,9 @@ server <- function(input, output, session) {
   })
   
   output$startable <- renderDataTable({
-    star_data()
+    data() %>%
+      select(NAME, input$star_stats) %>% 
+      filter(NAME %in% c(input$star_school1,input$star_school2,input$star_school3))
   })
   
   # Convert data for line plot
