@@ -58,7 +58,7 @@ starplot <- function(data){
   radarchart(
     data %>% select(-NAME), axistype = 1,
     # Customize the polygon
-    pcol = color, pfcol = scales::alpha(color, 0.3), plwd = 2, plty = 1,
+    pcol = color, pfcol = scales::alpha(color, 0.15), plwd = 2, plty = 1,
     # Customize the grid
     cglcol = "grey", cglty = 1, cglwd = 0.8,
     # Customize the axis
@@ -166,7 +166,7 @@ ui <- navbarPage("US College Rankings",
                               column(2, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
                             ),
                             fluidRow(
-                              column(2, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
+                              column(3, checkboxGroupInput("star_stats", "Select Starplot Stats (at least 3)", 
                                                            c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN","TUITIONFEE_OUT",
                                                              "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                            selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
@@ -177,7 +177,7 @@ ui <- navbarPage("US College Rankings",
                             ),
                             
                             fluidRow(
-                              column(2, selectInput("line_variable", "Select variable", 
+                              column(3, selectInput("line_variable", "Select Time Series Variable", 
                                                            c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT",
                                                              "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                            selected = c("ADM_RATE"))),
@@ -257,9 +257,9 @@ server <- function(input, output, session) {
   })
   
   output$startable <- renderDataTable({
-    # star_data() %>% select(NAME)
     app_data() %>%
-      select(NAME, star_stats)
+      select(NAME, input$star_stats) %>% 
+      filter(NAME %in% c(input$star_school1,input$star_school2,input$star_school3))
   })
   
   # Convert data for line plot
