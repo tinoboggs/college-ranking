@@ -49,14 +49,14 @@ histplot <- function(data, var) {
 ### PAGE 2 FUNCTIONS ###
 
 # Star plot function
-starplot <- function(data,
-                     vlabels = colnames(data), vlcex = 0.7,
-                     caxislabels = NULL, title = NULL, ...){
+starplot <- function(data){
   
   color <- c("#F8766D", "#00BFC4", "#7CAE00")
   
+  par(mar=c(3,8,2,8))
+  
   radarchart(
-    data, axistype = 1,
+    data %>% select(-NAME), axistype = 1,
     # Customize the polygon
     pcol = color, pfcol = scales::alpha(color, 0.3), plwd = 2, plty = 1,
     # Customize the grid
@@ -64,16 +64,18 @@ starplot <- function(data,
     # Customize the axis
     axislabcol = "grey", 
     # Variable labels
-    vlcex = vlcex, vlabels = vlabels,
-    caxislabels = caxislabels, title = title, ...
+    vlcex = 0.9, vlabels = colnames(data %>% select(-NAME)),
+    calcex=0.7, caxislabels = c("0%","25%","50%","75%","100%"),
+    title = "Head to Head Comparisons\n(percentiles)"
   )
-  
-  ### FIX THIS ###
+
   legend(
-    x = "bottom", legend = star_data()$NAME, horiz = TRUE,
+    x = "bottom", xpd=TRUE, inset=c(0, -.05),
+    legend = data[-c(1:2),1], horiz = TRUE,
     bty = "n", pch = 20 , col = c("#F8766D", "#00BFC4", "#7CAE00"),
-    text.col = "black", cex = 1, pt.cex = 1.5
+    text.col = "black", cex = 1, pt.cex = 2
   )
+
 }
 
 # Setting up data for star plot
@@ -97,7 +99,6 @@ star_data_convert <- function(star_school, star_stats){
   # Filter only selected school and create plot
   out <- star_data %>% 
     filter(NAME %in% c("MAX","MIN", star_school)) %>% 
-    select(-NAME) %>% 
     as.data.frame()
   
   return(out)
@@ -165,12 +166,16 @@ ui <- navbarPage("US College Rankings",
                               column(2, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
                             ),
                             fluidRow(
-                              column(4, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
+                              column(2, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
                                                            c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN","TUITIONFEE_OUT",
                                                              "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                            selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
-                              column(5, plotOutput("starplot"))
+                              column(7, plotOutput("starplot"))
                             ),
+                            fluidRow(
+                              dataTableOutput("startable")
+                            ),
+                            
                             fluidRow(
                               column(2, selectInput("line_variable", "Select variable", 
                                                            c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT",
@@ -179,9 +184,7 @@ ui <- navbarPage("US College Rankings",
                               
                               column(9, plotOutput("lineplot")),
                             ),
-                            fluidRow(
-                              dataTableOutput("startable")
-                            ),
+                            
                             fluidRow(
                               dataTableOutput("linetable")
                             )
@@ -254,6 +257,7 @@ server <- function(input, output, session) {
   })
   
   output$startable <- renderDataTable({
+    # star_data() %>% select(NAME)
     app_data() %>%
       select(NAME, star_stats)
   })
