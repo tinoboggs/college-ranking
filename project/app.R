@@ -62,7 +62,7 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
 histplot <- function(df, var, selected) {
   ggplot(df) +
     geom_histogram(aes(x = {{var}}, fill = factor(selected, levels = c(0, 1)))) +
-    scale_fill_manual(values=c("#C4C4C4", "#454545")) +
+    scale_fill_manual(values=c("#8BC3FF", "#2C3E51")) +
     theme(
       legend.position = "none",
       axis.title = element_blank(),
@@ -133,12 +133,13 @@ star_data_convert <- function(star_school, star_stats){
 lineplot = function(df, line_variable, schools){
   ggplot(mapping = aes(color = NAME)) +
     geom_line(data=df, aes(YEAR, .data[[line_variable]])) +
-    scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020))+
+    scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020)) +
     scale_color_manual(values = c("#F8766D", "#00BFC4", "#7CAE00"), labels = {{schools}}) +
     labs(x = "Year", y = line_variable,
-         title = paste0(line_variable, " Evolution (2011-2020)"), color = "")+
+         title = paste0("Evolution of ", line_variable," (2011-2020)"), color = "") +
     theme(
       text = element_text(size = 18),
+      plot.title = element_text(hjust = 0.5),
       legend.position = "bottom"
       )
 }
@@ -241,7 +242,7 @@ server <- function(input, output, session) {
     data() %>%
       leaflet(options = leafletOptions(minZoom = 3)) %>% 
       addProviderTiles(providers$Stamen.TonerLite, options = providerTileOptions(noWrap = TRUE)) %>% 
-      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE, label = ~NAME, color = ~colorFactor(palette=c("#C4C4C4", "#454545"), domain=selected)(selected)) %>% 
+      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE, label = ~NAME, color = ~colorFactor(palette=c("#8BC3FF", "#2C3E51"), domain=selected)(selected)) %>% 
       setView(lng = -93.85, lat = 37.45, zoom = 3) %>% 
       setMaxBounds(lng1 = -40, lat1 = 10, lng2 = -160, lat2 = 60)
   })
