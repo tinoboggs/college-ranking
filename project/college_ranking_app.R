@@ -273,6 +273,19 @@ server <- function(input, output, session) {
     star_data()
   })
   
+  # Convert data for line plot
+  line_data <- reactive({
+    line_data_convert(c(input$star_school1,input$star_school2,input$star_school3), input$line_variable)
+  })
+  
+  output$lineplot <- renderPlot({
+    lineplot(line_data(),input$line_variable)
+  })
+  
+  output$linetable <- renderDataTable({
+    line_data()
+  })
+  
 }
 
 shinyApp(ui, server)
