@@ -165,9 +165,9 @@ ui <- navbarPage("College Ranking",
                           fluidPage(
                             titlePanel("Micro view"),
                             fluidRow(
-                              column(2, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
-                              column(2, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
-                              column(2, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
+                              column(4, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
+                              column(4, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
+                              column(4, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
                             ),
                             fluidRow(
                               column(4, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
@@ -237,7 +237,9 @@ server <- function(input, output, session) {
   
   # Make the star plot school selection input options change based on page 1 filters
   observe({
-    p1schools <- data()$NAME
+    p1schools <- data() %>% 
+      filter(selected == 1) %>%
+      pull(NAME)
     
     if (is.null(p1schools)){
       p1schools <- character(0)
