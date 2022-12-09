@@ -130,10 +130,11 @@ star_data_convert <- function(star_school, star_stats){
 }
 
 # Line plot function
-lineplot = function(df, line_variable){
+lineplot = function(df, line_variable, schools){
   ggplot(mapping = aes(color = NAME)) +
     geom_line(data=df, aes(YEAR, .data[[line_variable]])) +
     scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020))+
+    scale_color_manual(values = c("#F8766D", "#00BFC4", "#7CAE00"), labels = {{schools}}) +
     labs(x = "Year", y = line_variable,
          title = paste0(line_variable, " Evolution (2011-2020)"), color = "")+
     theme(
@@ -301,7 +302,7 @@ server <- function(input, output, session) {
   })
   
   output$lineplot <- renderPlot({
-    lineplot(line_data(),input$line_variable)
+    lineplot(line_data(),input$line_variable, c(input$star_school1,input$star_school2,input$star_school3))
   })
   
 }
