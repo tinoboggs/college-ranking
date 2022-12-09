@@ -74,7 +74,7 @@ histplot <- function(df, var, selected) {
 ### PAGE 2 FUNCTIONS ###
 
 # Star plot function
-starplot <- function(data){
+starplot <- function(data, schools){
   
   color <- c("#F8766D", "#00BFC4", "#7CAE00")
   
@@ -96,7 +96,7 @@ starplot <- function(data){
   
   legend(
     x = "bottom", xpd=TRUE, inset=c(0, -.05),
-    legend = data[-c(1:2),1], horiz = TRUE,
+    legend = {{schools}}, horiz = TRUE,
     bty = "n", pch = 20 , col = c("#F8766D", "#00BFC4", "#7CAE00"),
     text.col = "black", cex = 1, pt.cex = 2
   )
@@ -104,7 +104,7 @@ starplot <- function(data){
 }
 
 # Setting up data for star plot
-star_data_convert <- function(star_school, star_stats){
+star_data_convert <- function(schools, star_stats){
   stats_all <- c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "COSTT4_A", "TUITION", "COMPLETION_RATE", "ACTCM25", "ACTCM75", "ACT_MEDIAN", "NET_PRICE", "YEARLY_COST")
   stats_inv <- c("RANK", "COSTT4_A", "TUITION", "NET_PRICE", "YEARLY_COST")
   
@@ -123,10 +123,16 @@ star_data_convert <- function(star_school, star_stats){
   
   # Filter only selected school and create plot
   out <- star_data %>% 
-    filter(NAME %in% c("MAX","MIN", star_school)) %>% 
+    filter(NAME %in% c("MAX","MIN", {{schools}})) %>% 
     as.data.frame()
   
   return(out)
+}
+
+star_table_out <- function(data, schools, star_stats){
+  data %>%
+    select(NAME, star_stats) %>% 
+    filter(NAME %in% {{schools}})
 }
 
 # Line plot function
@@ -288,13 +294,11 @@ server <- function(input, output, session) {
   })
   
   output$starplot <- renderPlot({
-    starplot(star_data())
+    starplot(star_data(), c(input$star_school1,input$star_school2,input$star_school3))
   })
   
   output$startable <- renderDataTable({
-    data() %>%
-      select(NAME, input$star_stats) %>% 
-      filter(NAME %in% c(input$star_school1,input$star_school2,input$star_school3))
+    star_table_out(data(), c(input$star_school1,input$star_school2,input$star_school3), input$star_stats)
   })
   
   # Convert data for line plot
