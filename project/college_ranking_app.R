@@ -139,7 +139,7 @@ ui <- navbarPage("College Ranking",
                  ),
                  tabPanel("Compare Universities",
                           fluidPage(
-                            titlePanel("Compare Universities"),
+                            titlePanel("Micro view"),
                             fluidRow(
                               column(2, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
                               column(2, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
@@ -147,12 +147,24 @@ ui <- navbarPage("College Ranking",
                             ),
                             fluidRow(
                               column(4, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
-                                                           c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT", "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost"),
+                                                           c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN","TUITIONFEE_OUT",
+                                                             "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                            selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
                               column(5, plotOutput("starplot"))
                             ),
                             fluidRow(
+                              column(2, selectInput("line_variable", "Select variable", 
+                                                    c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT",
+                                                      "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
+                                                    selected = c("ADM_RATE"))),
+                              
+                              column(9, plotOutput("lineplot")),
+                            ),
+                            fluidRow(
                               dataTableOutput("startable")
+                            ),
+                            fluidRow(
+                              dataTableOutput("linetable")
                             )
                           )
                  )
