@@ -112,6 +112,30 @@ star_data_convert <- function(star_school, star_stats){
   return(out)
 }
 
+# Line plot function
+lineplot = function(df, line_variable){
+  ggplot(mapping = aes(color = NAME)) +
+    geom_line(data=df, aes(YEAR, .data[[line_variable]])) +
+    scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020))+
+    labs(x = "Year", y = line_variable,
+         title = paste0(line_variable, " evolution (2011-2020)"), color = "")+
+    theme(text = element_text(size = 18))
+}
+
+# Setting up data for line plot (use same schools as in star plot)
+line_data_convert <- function(star_school, line_variable){
+  # Get selected variable
+  line_data <- data %>%
+    select(NAME, YEAR, line_variable)
+  
+  # Filter only selected school
+  out <- line_data %>% 
+    filter(NAME %in% c(star_school)) %>% 
+    as.data.frame()
+  
+  return(out)
+}
+
 ui <- navbarPage("College Ranking",
                  tabPanel("Find Universities",
                           fluidPage(
@@ -248,6 +272,7 @@ server <- function(input, output, session) {
   output$startable <- renderDataTable({
     star_data()
   })
+  
 }
 
 shinyApp(ui, server)
