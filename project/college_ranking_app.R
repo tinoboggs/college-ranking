@@ -2,19 +2,28 @@ library(tidyverse)
 library(leaflet)
 library(shiny)
 library(fmsb)
+library(bslib)
 theme_set(theme_minimal())
 
 data <- read_csv("data/colleges_crime.csv") %>% 
   mutate_at(vars(contains("ACTCM")), funs(as.integer)) %>%
   mutate(
     CITY = paste0(CITY, ", ", STABBR),
-    avg_yearly_cost = round(COSTT4_A / 4, digits = -1),
+    YEARLY_COST = round(COSTT4_A, digits = -1),
     UGDS = round(UGDS, digits = -1),
     TUITIONFEE_IN = round(TUITIONFEE_IN, digits = -1),
     TUITIONFEE_OUT = round(TUITIONFEE_OUT, digits = -1),
     TUITION = round(ifelse(STABBR == "WI", TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
     selected = 1
   ) %>%
+  rename(
+    ADMIT_RATE = ADM_RATE,
+    ACT_MEDIAN = ACTCMMID,
+    COMPLETION_RATE = C150_4,
+    NET_PRICE = NPT,
+    UNDERGRAD_ENROLLMENT = UGDS
+    ) %>%
+  arrange(RANK) %>%
   drop_na()
 
 data_2020 <- filter(data, YEAR == 2020)
@@ -24,8 +33,8 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
     filter(YEAR == 2020) %>%
     mutate(
       TUITION = round(ifelse(STABBR == home_state, TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
-      admit_difficulty = case_when(
-        ADM_RATE < .1 ~ "Reach", # Any school with admit rate <10% is reach, regardless of ACT score
+      ADMIT_DIFFICULTY = case_when(
+        ADMIT_RATE < .1 ~ "Reach", # Any school with admit rate <10% is reach, regardless of ACT score
         act_score > ACTCM75 ~ "Safety",
         act_score >= ACTCM25 ~ "Target",
         act_score < ACTCM25 ~ "Reach"
@@ -35,15 +44,15 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
         TYPE == "PUB" ~ "Public"
       ),
       selected = case_when(
-        !(admit_difficulty %in% selectivity) ~ 0,
-        min_admit > ADM_RATE ~ 0,
+        !(ADMIT_DIFFICULTY %in% selectivity) ~ 0,
+        min_admit > ADMIT_RATE ~ 0,
         !(inst_type %in% type) ~ 0,
-        avg_yearly_cost <= cost_range[1] ~ 0,
-        avg_yearly_cost >= cost_range[2] ~ 0,
+        NET_PRICE <= cost_range[1] ~ 0,
+        NET_PRICE >= cost_range[2] ~ 0,
         TUITION <= tuition_range[1] ~ 0,
         TUITION >= tuition_range[2] ~ 0,
-        UGDS <= size_range[1] ~ 0,
-        UGDS >= size_range[2] ~ 0,
+        UNDERGRAD_ENROLLMENT <= size_range[1] ~ 0,
+        UNDERGRAD_ENROLLMENT >= size_range[2] ~ 0,
         TRUE ~ 1
       )
     )
@@ -69,7 +78,7 @@ starplot <- function(data){
   
   color <- c("#F8766D", "#00BFC4", "#7CAE00")
   
-  par(mar=c(3,6,2,6))
+  par(mar=c(3,0,2,0))
   
   radarchart(
     data %>% select(-NAME), axistype = 1,
@@ -96,8 +105,8 @@ starplot <- function(data){
 
 # Setting up data for star plot
 star_data_convert <- function(star_school, star_stats){
-  stats_all <- c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITION", "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost")
-  stats_inv <- c("RANK", "COSTT4_A", "TUITION", "NPT", "avg_yearly_cost")
+  stats_all <- c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "COSTT4_A", "TUITION", "COMPLETION_RATE", "ACTCM25", "ACTCM75", "ACT_MEDIAN", "NET_PRICE", "YEARLY_COST")
+  stats_inv <- c("RANK", "COSTT4_A", "TUITION", "NET_PRICE", "YEARLY_COST")
   
   # Convert selected stats into percentiles using all 2020 schools
   star_data <- data %>%
@@ -161,20 +170,21 @@ ui <- navbarPage("College Ranking",
                             fluidRow(
                               column(4,
                                      plotOutput("cost", height = 100),
-                                     sliderInput("cost_range", NULL, min(data_2020$avg_yearly_cost), max(data_2020$avg_yearly_cost), c(min(data_2020$avg_yearly_cost), max(data_2020$avg_yearly_cost)), round = 100),
+                                     sliderInput("cost_range", NULL, min(data_2020$NET_PRICE), max(data_2020$NET_PRICE), c(min(data_2020$NET_PRICE), max(data_2020$NET_PRICE)), round = 100),
                                      plotOutput("tuition", height = 100),
                                      sliderInput("tuition_range", NULL, min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT), c(min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT))),
                                      plotOutput("size", height = 100),
-                                     sliderInput("size_range", NULL, min(data_2020$UGDS), max(data_2020$UGDS), c(min(data_2020$UGDS), max(data_2020$UGDS)))
+                                     sliderInput("size_range", NULL, min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT), c(min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT)))
                               ),
-                              column(8, leafletOutput("map")),
+                              column(8, leafletOutput("map", height = 500)),
                             ),
-                            fluidRow(dataTableOutput("table"))
+                            fluidRow(dataTableOutput("table")),
+                            theme = bs_theme(bootswatch = "flatly")
                           )
                  ),
                  tabPanel("Compare Universities",
                           fluidPage(
-                            titlePanel("Micro view"),
+                            titlePanel("Compare Universities"),
                             fluidRow(
                               column(4, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
                               column(4, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
@@ -182,24 +192,21 @@ ui <- navbarPage("College Ranking",
                             ),
                             fluidRow(
                               column(4, checkboxGroupInput("star_stats", "Select Starplot Stats (at least 3)", 
-                                                           c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITION",
-                                                             "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
-                                                           selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
+                                                           c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "TUITION", "YEARLY_COST",
+                                                             "COMPLETION_RATE", "ACT_MEDIAN", "NET_PRICE", "SAFETY_INDEX"),
+                                                           selected = c("RANK","ADMIT_RATE","UNDERGRAD_ENROLLMENT","TUITION", "YEARLY_COST"))),
                               column(8, plotOutput("starplot"))
                             ),
                             fluidRow(
                               column(4, selectInput("line_variable", "Select Time Series Variable", 
-                                                    c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITION",
-                                                      "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
-                                                    selected = c("ADM_RATE"))),
+                                                    c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "TUITION", "YEARLY_COST",
+                                                      "COMPLETION_RATE", "ACT_MEDIAN", "NET_PRICE", "SAFETY_INDEX"),
+                                                    selected = c("ADMIT_RATE"))),
                               
                               column(8, plotOutput("lineplot")),
                             ),
                             fluidRow(
                               dataTableOutput("startable")
-                            ),
-                            fluidRow(
-                              dataTableOutput("linetable")
                             )
                           )
                  )
@@ -215,8 +222,8 @@ server <- function(input, output, session) {
   })
   
   output$cost <- renderPlot({
-    histplot(data(), avg_yearly_cost, selected()) +
-      labs(title = "Yearly Average Cost of Attendance")
+    histplot(data(), NET_PRICE, selected()) +
+      labs(title = "Net Price of Attendance")
   })
   
   output$tuition <- renderPlot({
@@ -225,7 +232,7 @@ server <- function(input, output, session) {
   })
   
   output$size <- renderPlot({
-    histplot(data(), UGDS, selected()) +
+    histplot(data(), UNDERGRAD_ENROLLMENT, selected()) +
       labs(title = "Student Body Size")
   })
   
@@ -241,7 +248,7 @@ server <- function(input, output, session) {
   output$table <- renderDataTable({
     data() %>%
       filter(selected == TRUE) %>% 
-      select(NAME, CITY, RANK, admit_difficulty, TUITION, avg_yearly_cost) # RANK, CITY, STABBR, ACTCM25)
+      select(NAME, CITY, RANK, ADMIT_RATE, ADMIT_DIFFICULTY, TUITION, NET_PRICE) # RANK, CITY, STABBR, ACTCM25)
   })
   
   ### PAGE 2 ###
@@ -295,10 +302,6 @@ server <- function(input, output, session) {
   
   output$lineplot <- renderPlot({
     lineplot(line_data(),input$line_variable)
-  })
-  
-  output$linetable <- renderDataTable({
-    line_data()
   })
   
 }
