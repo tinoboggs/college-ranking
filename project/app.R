@@ -96,7 +96,7 @@ starplot <- function(data, schools){
   
   legend(
     x = "bottom", xpd=TRUE, inset=c(0, -.05),
-    legend = {{schools}}, horiz = TRUE,
+    legend = data[-c(1:2),] %>% pull(NAME), horiz = TRUE,
     bty = "n", pch = 20 , col = c("#F8766D", "#00BFC4", "#7CAE00"),
     text.col = "black", cex = 1, pt.cex = 2
   )
@@ -105,7 +105,7 @@ starplot <- function(data, schools){
 
 # Setting up data for star plot
 star_data_convert <- function(schools, star_stats){
-  stats_all <- c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "COSTT4_A", "TUITION", "COMPLETION_RATE", "ACTCM25", "ACTCM75", "ACT_MEDIAN", "NET_PRICE", "YEARLY_COST")
+  stats_all <- c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "TUITION", "YEARLY_COST", "COMPLETION_RATE", "ACT_MEDIAN", "NET_PRICE", "SAFETY_INDEX")
   stats_inv <- c("RANK", "COSTT4_A", "TUITION", "NET_PRICE", "YEARLY_COST")
   
   # Convert selected stats into percentiles using all 2020 schools
@@ -124,6 +124,7 @@ star_data_convert <- function(schools, star_stats){
   # Filter only selected school and create plot
   out <- star_data %>% 
     filter(NAME %in% c("MAX","MIN", {{schools}})) %>% 
+    arrange(match(NAME, c("MAX","MIN", {{schools}}))) %>% 
     as.data.frame()
   
   return(out)
@@ -132,7 +133,8 @@ star_data_convert <- function(schools, star_stats){
 star_table_out <- function(data, schools, star_stats){
   data %>%
     select(NAME, star_stats) %>% 
-    filter(NAME %in% {{schools}})
+    filter(NAME %in% {{schools}}) %>% 
+    arrange(match(NAME, {{schools}}))
 }
 
 # Line plot function
@@ -140,7 +142,7 @@ lineplot = function(df, line_variable, schools){
   ggplot(mapping = aes(color = NAME)) +
     geom_line(data=df, aes(YEAR, .data[[line_variable]])) +
     scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020)) +
-    scale_color_manual(values = c("#F8766D", "#00BFC4", "#7CAE00"), labels = {{schools}}) +
+    #scale_color_manual(values = c("#F8766D", "#00BFC4", "#7CAE00"), labels = {{schools}}) +
     labs(x = "Year", y = line_variable,
          title = paste0("Evolution of ", line_variable," (2011-2020)"), color = "") +
     theme(
@@ -160,6 +162,10 @@ line_data_convert <- function(star_school, line_variable){
   out <- line_data %>% 
     filter(NAME %in% c(star_school)) %>% 
     as.data.frame()
+  
+  if(sum(star_school=="NA")<2){
+    out$NAME = factor(out$NAME, levels=star_school)
+  }
   
   return(out)
 }
@@ -195,8 +201,8 @@ ui <- navbarPage("College Ranking",
                             titlePanel("Compare Universities"),
                             fluidRow(
                               column(4, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
-                              column(4, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
-                              column(4, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
+                              column(4, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = character(0))),
+                              column(4, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = character(0)))
                             ),
                             fluidRow(
                               column(4, checkboxGroupInput("star_stats", "Select Starplot Stats (at least 3)", 
@@ -278,12 +284,12 @@ server <- function(input, output, session) {
     
     updateSelectInput(session, "star_school2",
                       choices = c(NA,p1schools),
-                      selected = NA
+                      selected = character(0)
     )
     
     updateSelectInput(session, "star_school3",
                       choices = c(NA,p1schools),
-                      selected = NA
+                      selected = character(0)
     )
     
   })
@@ -298,6 +304,7 @@ server <- function(input, output, session) {
   })
   
   output$startable <- renderDataTable({
+    # star_data()
     star_table_out(data(), c(input$star_school1,input$star_school2,input$star_school3), input$star_stats)
   })
   
