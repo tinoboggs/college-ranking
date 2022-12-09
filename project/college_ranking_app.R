@@ -118,7 +118,7 @@ lineplot = function(df, line_variable){
     geom_line(data=df, aes(YEAR, .data[[line_variable]])) +
     scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020))+
     labs(x = "Year", y = line_variable,
-         title = paste0(line_variable, " evolution (2011-2020)"), color = "")+
+         title = paste0(line_variable, " Evolution (2011-2020)"), color = "")+
     theme(text = element_text(size = 18))
 }
 
@@ -143,7 +143,7 @@ ui <- navbarPage("College Ranking",
                             fluidRow(
                               column(2, selectInput("home_state", "Home State", state.abb, selected = "WI")),
                               column(2, numericInput("act_score", "ACT Score", value = 36, min = 0, max = 36)),
-                              column(4, sliderInput("min_admit", "Minimum Admit Rate", 0, 1, 0)),
+                              column(4, sliderInput("min_admit", "Minimum Admission Rate", 0, 1, 0)),
                               column(2, checkboxGroupInput("selectivity", "Selectivity", c("Reach", "Target", "Safety"), selected = c("Reach", "Target", "Safety"))),
                               column(2, checkboxGroupInput("type", "Institution Type", c("Public", "Private"), selected = c("Public", "Private")))
                             ),
@@ -165,19 +165,19 @@ ui <- navbarPage("College Ranking",
                           fluidPage(
                             titlePanel("Micro view"),
                             fluidRow(
-                              column(4, selectInput("star_school1", "Select First School", unique(data$NAME), selected = NA)),
-                              column(4, selectInput("star_school2", "Select Second School", c(NA,unique(data$NAME)), selected = NA)),
-                              column(4, selectInput("star_school3", "Select Third School", c(NA,unique(data$NAME)), selected = NA))
+                              column(4, selectInput("star_school1", "Select First School (Red)", unique(data$NAME), selected = NA)),
+                              column(4, selectInput("star_school2", "Select Second School (Green)", c(NA,unique(data$NAME)), selected = NA)),
+                              column(4, selectInput("star_school3", "Select Third School (Blue)", c(NA,unique(data$NAME)), selected = NA))
                             ),
                             fluidRow(
                               column(4, checkboxGroupInput("star_stats", "Select Stats (at least 3)", 
                                                            c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN","TUITIONFEE_OUT",
                                                              "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                            selected = c("RANK","ADM_RATE","UGDS","COSTT4_A"))),
-                              column(5, plotOutput("starplot"))
+                              column(8, plotOutput("starplot"))
                             ),
                             fluidRow(
-                              column(2, selectInput("line_variable", "Select variable", 
+                              column(3, selectInput("line_variable", "Select variable", 
                                                     c("RANK", "ADM_RATE", "UGDS", "COSTT4_A", "TUITIONFEE_IN", "TUITIONFEE_OUT",
                                                       "C150_4", "ACTCM25", "ACTCM75", "ACTCMMID", "NPT", "avg_yearly_cost","SAFETY_INDEX"),
                                                     selected = c("ADM_RATE"))),
