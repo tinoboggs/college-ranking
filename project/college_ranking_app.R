@@ -55,7 +55,7 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
 histplot <- function(df, var, selected) {
   ggplot(df) +
     geom_histogram(aes(x = {{var}}, fill = factor(selected, levels = c(0, 1)))) +
-    scale_fill_manual(values=c("orange", "purple")) +
+    scale_fill_manual(values=c("#C4C4C4", "#454545")) +
     theme(
       legend.position = "none",
       axis.title = element_blank(),
@@ -222,7 +222,7 @@ server <- function(input, output, session) {
     data() %>%
       leaflet(options = leafletOptions(minZoom = 3)) %>% 
       addProviderTiles(providers$Stamen.TonerLite, options = providerTileOptions(noWrap = TRUE)) %>% 
-      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE, label = ~NAME, color = ~colorFactor(palette=c("orange", "purple"), domain=selected)(selected)) %>% 
+      addCircles(lng = ~LONGITUDE, lat = ~LATITUDE, label = ~NAME, color = ~colorFactor(palette=c("#C4C4C4", "#454545"), domain=selected)(selected)) %>% 
       setView(lng = -93.85, lat = 37.45, zoom = 3) %>% 
       setMaxBounds(lng1 = -40, lat1 = 10, lng2 = -160, lat2 = 60)
   })
