@@ -47,12 +47,12 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
         !(ADMIT_DIFFICULTY %in% selectivity) ~ 0,
         min_admit > ADMIT_RATE ~ 0,
         !(inst_type %in% type) ~ 0,
-        NET_PRICE <= cost_range[1] ~ 0,
-        NET_PRICE >= cost_range[2] ~ 0,
-        TUITION <= tuition_range[1] ~ 0,
-        TUITION >= tuition_range[2] ~ 0,
-        UNDERGRAD_ENROLLMENT <= size_range[1] ~ 0,
-        UNDERGRAD_ENROLLMENT >= size_range[2] ~ 0,
+        NET_PRICE < cost_range[1] ~ 0,
+        NET_PRICE > cost_range[2] ~ 0,
+        TUITION < tuition_range[1] ~ 0,
+        TUITION > tuition_range[2] ~ 0,
+        UNDERGRAD_ENROLLMENT < size_range[1] ~ 0,
+        UNDERGRAD_ENROLLMENT > size_range[2] ~ 0,
         TRUE ~ 1
       )
     )
@@ -61,12 +61,15 @@ update_data <- function(home_state, act_score, min_admit, selectivity, type, cos
 
 histplot <- function(df, var, selected) {
   ggplot(df) +
-    geom_histogram(aes(x = {{var}}, fill = factor(selected, levels = c(0, 1)))) +
-    scale_fill_manual(values=c("#8BC3FF", "#2C3E51")) +
+    geom_histogram(
+      aes(x = {{var}}, fill = factor(selected, levels = c(1, 0))), 
+      position = position_stack(reverse = TRUE)
+    ) +
+    scale_fill_manual(values = c("#2C3E51", "#8BC3FF"), labels = c(1, 0)) +
     theme(
       legend.position = "none",
       axis.title = element_blank(),
-      axis.text.y = element_blank(),
+      axis.text = element_blank(),
       axis.ticks.y = element_blank()
     )
 }
@@ -183,12 +186,12 @@ ui <- navbarPage("College Ranking",
                             ),
                             fluidRow(
                               column(4,
-                                     plotOutput("cost", height = 100),
-                                     sliderInput("cost_range", NULL, min(data_2020$NET_PRICE), max(data_2020$NET_PRICE), c(min(data_2020$NET_PRICE), max(data_2020$NET_PRICE)), round = 100),
-                                     plotOutput("tuition", height = 100),
-                                     sliderInput("tuition_range", NULL, min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT), c(min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT))),
-                                     plotOutput("size", height = 100),
-                                     sliderInput("size_range", NULL, min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT), c(min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT)))
+                                     plotOutput("cost", height = 100, width = 250),
+                                     sliderInput("cost_range", NULL, min(data_2020$NET_PRICE), max(data_2020$NET_PRICE), c(min(data_2020$NET_PRICE), max(data_2020$NET_PRICE)), width = 250),
+                                     plotOutput("tuition", height = 100, width = 250),
+                                     sliderInput("tuition_range", NULL, min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT), c(min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT)), width = 250),
+                                     plotOutput("size", height = 100, width = 250),
+                                     sliderInput("size_range", NULL, min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT), c(min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT)), width = 250)
                               ),
                               column(8, leafletOutput("map", height = 500)),
                             ),
@@ -237,17 +240,17 @@ server <- function(input, output, session) {
   
   output$cost <- renderPlot({
     histplot(data(), NET_PRICE, selected()) +
-      labs(title = "Net Price of Attendance")
+      labs(title = "Net Price of Attendance per Year")
   })
   
   output$tuition <- renderPlot({
     histplot(data(), TUITION, selected()) +
-      labs(title = "Tuition Range (per year)")
+      labs(title = "Tuition per Year")
   })
   
   output$size <- renderPlot({
     histplot(data(), UNDERGRAD_ENROLLMENT, selected()) +
-      labs(title = "Student Body Size")
+      labs(title = "Undergraduate Enrollment Size")
   })
   
   output$map <- renderLeaflet({
