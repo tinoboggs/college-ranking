@@ -142,7 +142,7 @@ lineplot = function(df, line_variable, schools){
   ggplot(mapping = aes(color = NAME)) +
     geom_line(data=df, aes(YEAR, .data[[line_variable]])) +
     scale_x_continuous(breaks = c(2011,2012,2013,2014,2015,2016,2017,2018,2019,2020)) +
-    #scale_color_manual(values = c("#F8766D", "#00BFC4", "#7CAE00"), labels = {{schools}}) +
+    scale_color_manual(values = c("#F8766D", "#00BFC4", "#7CAE00"), labels = {{schools}}) +
     labs(x = "Year", y = line_variable,
          title = paste0("Evolution of ", line_variable," (2011-2020)"), color = "") +
     theme(
