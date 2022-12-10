@@ -186,12 +186,12 @@ ui <- navbarPage("College Ranking",
                             ),
                             fluidRow(
                               column(4,
-                                     plotOutput("cost", height = 100, width = 250),
-                                     sliderInput("cost_range", NULL, min(data_2020$NET_PRICE), max(data_2020$NET_PRICE), c(min(data_2020$NET_PRICE), max(data_2020$NET_PRICE)), width = 250),
-                                     plotOutput("tuition", height = 100, width = 250),
-                                     sliderInput("tuition_range", NULL, min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT), c(min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT)), width = 250),
-                                     plotOutput("size", height = 100, width = 250),
-                                     sliderInput("size_range", NULL, min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT), c(min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT)), width = 250)
+                                     plotOutput("cost", height = 100, width = 350),
+                                     sliderInput("cost_range", NULL, min(data_2020$NET_PRICE), max(data_2020$NET_PRICE), c(min(data_2020$NET_PRICE), max(data_2020$NET_PRICE)), width = 350),
+                                     plotOutput("tuition", height = 100, width = 350),
+                                     sliderInput("tuition_range", NULL, min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT), c(min(data_2020$TUITIONFEE_IN), max(data_2020$TUITIONFEE_OUT)), width = 350),
+                                     plotOutput("size", height = 100, width = 350),
+                                     sliderInput("size_range", NULL, min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT), c(min(data_2020$UNDERGRAD_ENROLLMENT), max(data_2020$UNDERGRAD_ENROLLMENT)), width = 350)
                               ),
                               column(8, leafletOutput("map", height = 500)),
                             ),
@@ -255,10 +255,10 @@ server <- function(input, output, session) {
   
   output$map <- renderLeaflet({
     data() %>%
-      leaflet(options = leafletOptions(minZoom = 3)) %>% 
+      leaflet(options = leafletOptions(minZoom = 4)) %>% 
       addProviderTiles(providers$Stamen.TonerLite, options = providerTileOptions(noWrap = TRUE)) %>% 
       addCircles(lng = ~LONGITUDE, lat = ~LATITUDE, label = ~NAME, color = ~colorFactor(palette=c("#8BC3FF", "#2C3E51"), domain=selected)(selected)) %>% 
-      setView(lng = -93.85, lat = 37.45, zoom = 3) %>% 
+      setView(lng = -93.85, lat = 37.45, zoom = 4) %>% 
       setMaxBounds(lng1 = -40, lat1 = 10, lng2 = -160, lat2 = 60)
   })
   
