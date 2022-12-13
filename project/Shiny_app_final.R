@@ -27,11 +27,11 @@ data <- read_csv("data/colleges_crime.csv") %>%
   arrange(RANK) %>%
   drop_na()
 
-data_2020 <- filter(data, YEAR == 2020)
+data_2020 <- filter(data, YEAR == max(data$YEAR))
 
 update_data <- function(home_state, act_score, min_admit, selectivity, type, cost_range, completion_range, size_range) {
   out <- data %>%
-    filter(YEAR == 2020) %>%
+    filter(YEAR == max(data$YEAR)) %>%
     mutate(
       TUITION = round(ifelse(STABBR == home_state, TUITIONFEE_IN, TUITIONFEE_OUT), digits = -1),
       ADMIT_DIFFICULTY = case_when(
@@ -110,9 +110,9 @@ starplot <- function(data, schools){
 # Setting up data for star plot
 star_data_convert <- function(schools, star_stats){
   stats_all = c("RANK_SCORE", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", 
-    "TUITION_AFFORDABILITY", "COST_AFFORDABILITY",
-    "COMPLETION_RATE", "ACT_MEDIAN", 
-    "NET_PRICE_AFFORDABILITY", "SAFETY_INDEX")
+                "TUITION_AFFORDABILITY", "COST_AFFORDABILITY",
+                "COMPLETION_RATE", "ACT_MEDIAN", 
+                "NET_PRICE_AFFORDABILITY", "SAFETY_INDEX")
   #stats_all <- c("RANK", "ADMIT_RATE", "UNDERGRAD_ENROLLMENT", "TUITION", "YEARLY_COST", "COMPLETION_RATE", "ACT_MEDIAN", "NET_PRICE", "SAFETY_INDEX")
   stats_inv <- c("RANK_SCORE", "TUITION_AFFORDABILITY", "NET_PRICE_AFFORDABILITY", "COST_AFFORDABILITY")
   
@@ -120,7 +120,7 @@ star_data_convert <- function(schools, star_stats){
   star_data <- data %>%
     rename(RANK_SCORE = RANK, TUITION_AFFORDABILITY = TUITION, 
            NET_PRICE_AFFORDABILITY = NET_PRICE, COST_AFFORDABILITY = YEARLY_COST) %>% 
-    filter(YEAR == 2020) %>% 
+    filter(YEAR == max(data$YEAR)) %>% 
     mutate(across(stats_all, function(x) ecdf(x)(x))) %>% 
     mutate(across(stats_inv, function(x) 1-x)) %>% 
     select(NAME, star_stats)
