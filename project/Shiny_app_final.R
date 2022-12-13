@@ -79,11 +79,6 @@ histplot <- function(df, var, selected) {
 
 # Star plot function
 starplot <- function(data, schools){
-
-  if("RANK" %in% colnames(data)){data = data %>% rename(RANK_SCORE = RANK)}
-  if("TUITION" %in% colnames(data)){data = data %>% rename(TUITION_AFFORDABILITY = TUITION)}
-  if("NPT" %in% colnames(data)){data = data %>% rename(NET_PRICE_AFFORDABILITY = NPT)}
-  if("YEARLY_COST" %in% colnames(data)){data = data %>% rename(COST_AFFORDABILITY = YEARLY_COST)}
   
   color <- c("#F8766D", "#00BFC4", "#7CAE00")
   
